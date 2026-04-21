@@ -182,13 +182,13 @@ The 10 highest-ranked individual probe CNNs (by test AUC on the original trainin
 
 Each ensemble model takes 500-dimensional embeddings from two probe-specific CNN+reducer pipelines and classifies them jointly.
 
-| Probe pair | Algorithm | Training test accuracy |
-|------------|-----------|----------------------|
-| 34, 42 | MLP | 0.971 |
-| 42, 209 | SVM (RBF) | 0.971 |
-| 42, 270 | SVM (RBF) | 0.971 |
-| 55, 254 | SVM (RBF) | 0.971 |
-| 57, 229 | SVM (RBF) | 0.971 |
+| Probe pair | Algorithm | Test AUC | Test accuracy |
+|------------|-----------|----------|---------------|
+| 34, 42 | MLP | 0.989 | 33/34 (97.1%) |
+| 42, 270 | SVM (RBF) | 0.982 | 33/34 (97.1%) |
+| 57, 229 | SVM (RBF) | 0.982 | 33/34 (97.1%) |
+| 55, 254 | SVM (RBF) | 0.960 | 33/34 (97.1%) |
+| 42, 209 | SVM (RBF) | 0.956 | 33/34 (97.1%) |
 
 See `models/README.md` for a complete inventory of all weight files.
 
