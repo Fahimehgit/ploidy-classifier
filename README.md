@@ -1,10 +1,13 @@
 # Ploidy Classifier
 
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-%3E%3D1.9-red.svg)](https://pytorch.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Predict **diploid vs. polyploid** from targeted sequence capture BAM files using an ensemble of CNN and machine learning models.
 
-This repository accompanies the paper:
-
 > **Machine learning prediction of plant polyploidy from target capture data**
+>
 > Fahimeh Rahimi, Jessie A. Pelosi, J. Gordon Burleigh, Juannan Zhou
 
 ---
