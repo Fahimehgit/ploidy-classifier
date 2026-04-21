@@ -1,0 +1,17 @@
+name: ploidy-env
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.9
+  - pytorch>=1.9.0
+  - torchvision>=0.10.0
+  - numpy>=1.21.0
+  - scikit-learn>=1.0.0
+  - pandas>=1.3.0
+  - joblib
+  - pysam
+  - mafft
+  - samtools
+  - pip

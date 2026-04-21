@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# SLURM logs
+*.err
+*.out
+
+# Inference working directories
+output/
+work/
+
+# Zenodo packaging artifacts (not needed if weights are committed directly)
+zenodo_staging/
+ploidy_classifier_weights.tar.gz
