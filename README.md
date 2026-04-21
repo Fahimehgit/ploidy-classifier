@@ -38,8 +38,8 @@ ploidy-classifier-release/
 ```bash
 # On HiPerGator
 cd /blue/YOUR_GROUP/YOUR_USER/
-git clone https://github.com/YOUR_ORG/ploidy-classifier-release.git
-cd ploidy-classifier-release
+git clone https://github.com/Fahimehgit/ploidy-classifier.git
+cd ploidy-classifier
 ```
 
 ### Step 1: Create the conda environment
