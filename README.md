@@ -1,8 +1,12 @@
-# Ploidy Classifier
+<p align="center">
+  <img src="assets/banner.png" alt="Ploidy Classifier" width="100%">
+</p>
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-%3E%3D1.9-red.svg)](https://pytorch.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9%2B-blue.svg" alt="Python 3.9+"></a>
+  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-%3E%3D1.9-red.svg" alt="PyTorch"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
+</p>
 
 Predict **diploid vs. polyploid** from targeted sequence capture BAM files using an ensemble of CNN and machine learning models.
 
