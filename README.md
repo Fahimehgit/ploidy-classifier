@@ -1,105 +1,126 @@
-# Ploidy Classifier — Inference Pipeline
+# Ploidy Classifier
 
-Predict **diploid vs. polyploid** from targeted sequence capture BAM files using trained CNN and ensemble models.
+Predict **diploid vs. polyploid** from targeted sequence capture BAM files using an ensemble of CNN and machine learning models.
+
+This repository accompanies the paper:
+
+> **Machine learning prediction of plant polyploidy from target capture data**
+> Fahimeh Rahimi, Jessie A. Pelosi, J. Gordon Burleigh, Juannan Zhou
+
+---
+
+## Overview
+
+The pipeline processes BAM files from targeted sequence capture experiments and classifies each sample as diploid or polyploid. It uses two complementary model types:
+
+- **CNN models**: 10 independently trained convolutional neural networks, each operating on a single probe locus. Predictions are averaged across probes.
+- **Ensemble models**: Pairs of CNN embeddings are combined via a trained classifier (MLP or SVM) for higher accuracy.
+
+The best results are obtained by averaging predictions from both model types (the **hybrid** approach).
 
 ---
 
 ## Repository Structure
 
 ```
-ploidy-classifier-release/
-├── README.md                 ← you are here
-├── environment.yml           ← conda environment definition
-├── requirements.txt          ← pip dependencies (alternative to conda)
-├── run_inference.sh          ← one-command batch runner
+ploidy-classifier/
+├── README.md
+├── environment.yml              # Conda environment definition
+├── requirements.txt             # Pip dependencies (alternative)
+├── run_inference.sh             # Batch inference runner
 ├── src/
-│   ├── run_cnn_top10_inference.py      ← CNN-only inference (10 best probes)
-│   └── run_ensemble_inference.py       ← ensemble pair inference (any probe pair)
+│   ├── run_cnn_top10_inference.py
+│   └── run_ensemble_inference.py
 ├── models/
-│   ├── README.md             ← model weight details
-│   ├── cnn_weights/          ← 16 CNN checkpoints (.pt)
-│   ├── reducer_weights/      ← 8 reducer MLP weights (.pt)
-│   └── ensemble_models/      ← 5 ensemble classifiers (.joblib)
+│   ├── README.md                # Model weight inventory
+│   ├── cnn_weights/             # 16 CNN checkpoints (.pt)
+│   ├── reducer_weights/         # 8 MLP reducer weights (.pt)
+│   └── ensemble_models/         # 5 ensemble classifiers (.joblib)
 ├── data/
-│   ├── final_ranked_results.npz        ← probe ranking (determines top-10)
-│   ├── probe_index_to_id_manifest.csv  ← model index ↔ probe ID mapping
-│   └── example_truth.csv               ← example truth labels (Lygodium)
-├── slurm/
-│   └── run_inference.slurm   ← example SLURM job script
-└── example_output/           ← example output will appear here
+│   ├── final_ranked_results.npz
+│   ├── probe_index_to_id_manifest.csv
+│   └── example_truth.csv
+└── slurm/
+    └── run_inference.slurm      # Example SLURM job script
 ```
 
 ---
 
-## Quick Start (step by step)
+## Installation
 
-### Step 0: Clone this repo
+### Option A: Conda (recommended)
 
 ```bash
-# On HiPerGator
-cd /blue/YOUR_GROUP/YOUR_USER/
 git clone https://github.com/Fahimehgit/ploidy-classifier.git
 cd ploidy-classifier
-```
-
-### Step 1: Create the conda environment
-
-```bash
-module load conda
 conda env create -f environment.yml
 conda activate ploidy-env
 ```
 
-This installs Python 3.9, PyTorch, scikit-learn, MAFFT, samtools, and pysam.
+### Option B: Pip
 
-### Step 2: Model weights (included)
+```bash
+git clone https://github.com/Fahimehgit/ploidy-classifier.git
+cd ploidy-classifier
+pip install -r requirements.txt
+```
 
-All model weights are included in this repository (~164 MB total). No extra download needed. They live in `models/`:
-- 16 CNN checkpoints in `models/cnn_weights/`
-- 8 reducer MLP weights in `models/reducer_weights/`
-- 5 ensemble classifier files in `models/ensemble_models/`
+Note: if using pip, you must install [MAFFT](https://mafft.cbrc.jp/alignment/software/) and [samtools](http://www.htslib.org/) separately.
 
-### Step 3: Prepare your data
+### Dependencies
 
-You need:
-1. **BAM files** — your targeted sequence capture alignments (one per sample)
-2. **Reference FASTAs** — the L*.fasta probe reference sequences (already on HiPerGator at `/orange/juannanzhou/ploidy/query_fasta_files/`)
+- Python 3.9+
+- PyTorch >= 1.9
+- scikit-learn >= 1.0
+- pandas, numpy, joblib
+- pysam
+- MAFFT (multiple sequence alignment)
+- samtools
 
-Optionally, a **truth file** (CSV) with columns `RapidID2` and `Ploidy.binary` for accuracy evaluation. See `data/example_truth.csv` for the format.
+All trained model weights are included in this repository (~164 MB).
 
-### Step 4: Run inference
+---
 
-**Option A: Run on all BAMs at once**
+## Input Requirements
+
+1. **BAM files** — targeted sequence capture alignments (one per sample), sorted and indexed.
+2. **Reference FASTA files** — probe reference sequences, one file per locus, named `L*.fasta`.
+3. *(Optional)* **Truth labels** — a CSV with columns `RapidID2` and `Ploidy.binary` (0 = diploid, 1 = polyploid) for accuracy evaluation. See `data/example_truth.csv` for the format.
+
+---
+
+## Usage
+
+### Batch inference (all BAMs in a directory)
 
 ```bash
 conda activate ploidy-env
-bash run_inference.sh /path/to/your/bam_files /orange/juannanzhou/ploidy/query_fasta_files
+bash run_inference.sh /path/to/bam_files /path/to/reference_fastas
 ```
 
-Results go to `output/<sample_name>/`.
+Output is written to `output/<sample_name>/`.
 
-**Option B: Run on a single BAM**
+### Single-sample inference
 
 ```bash
-# CNN-only (simpler, no reducer/ensemble weights needed)
+# CNN-only inference
 python src/run_cnn_top10_inference.py \
   --bam /path/to/sample.bam \
   --work-dir output/sample_work \
-  --reference-dir /orange/juannanzhou/ploidy/query_fasta_files
+  --reference-dir /path/to/reference_fastas
 
-# Ensemble (higher accuracy, needs all model weights)
-# Run for each probe pair (34_42, 42_209, 42_270, 55_254, 57_229):
+# Ensemble inference (run for each probe pair)
 python src/run_ensemble_inference.py \
   --bam /path/to/sample.bam \
   --work-dir output/sample_work \
-  --reference-dir /orange/juannanzhou/ploidy/query_fasta_files \
+  --reference-dir /path/to/reference_fastas \
   --probe1 34 --probe2 42 \
   --output-csv output/ensemble_34_42_predictions.csv
 ```
 
-**Option C: Submit as a SLURM job**
+### SLURM cluster submission
 
-Edit `slurm/run_inference.slurm` with your paths, then:
+Edit paths in `slurm/run_inference.slurm`, then:
 
 ```bash
 sbatch slurm/run_inference.slurm
@@ -107,100 +128,122 @@ sbatch slurm/run_inference.slurm
 
 ---
 
-## Understanding the Output
+## Output Format
 
-### CNN-only output (`cnn_top10_summary.csv`)
+### CNN output (`cnn_top10_summary.csv`)
 
-| Column | Meaning |
-|--------|---------|
-| `probe` | Probe ID used for this prediction |
-| `prob` | Predicted probability of being polyploid (0–1) |
-| `pred` | Binary prediction (0 = diploid, 1 = polyploid) at threshold 0.5 |
-| `true_label` | Ground-truth label (if truth file provided) |
+| Column | Description |
+|--------|-------------|
+| `species_id` | Sample identifier (derived from BAM filename) |
+| `probe` | Model index of the probe used |
+| `probe_id` | Probe locus ID (e.g., L238) |
+| `prob_polyploid` | Predicted probability of polyploidy (0–1) |
+| `pred_label` | Binary prediction at threshold 0.5 |
 
-The CNN script runs the **top 10 best-ranked probes** independently on each sample. Each probe gives its own probability. To get a final answer, take the **mean probability** across probes and threshold at 0.5.
+To obtain a final CNN prediction, average `prob_polyploid` across all probes for each sample.
 
-### Ensemble output (`ensemble_predictions.csv`)
+### Ensemble output (`ensemble_<P1>_<P2>_predictions.csv`)
 
-| Column | Meaning |
-|--------|---------|
+| Column | Description |
+|--------|-------------|
 | `species_id` | Sample identifier |
-| `prob_polyploid` | Predicted probability of being polyploid (0–1) |
-| `pred_label` | Binary prediction (0 = diploid, 1 = polyploid) |
+| `prob_polyploid` | Predicted probability of polyploidy (0–1) |
+| `pred_label` | Binary prediction at threshold 0.5 |
 
-The ensemble combines embeddings from two probes through a trained classifier (MLP or SVM) for more accurate predictions.
+### Hybrid prediction
 
----
-
-## Which Models to Run
-
-The pipeline uses **two types of models** that complement each other:
-
-| Model type | Script | What it does |
-|------------|--------|-------------|
-| **CNN top-10** | `run_cnn_top10_inference.py` | Runs the 10 best individual probe CNNs. Each probe gives its own probability. Average them for a final answer. |
-| **Ensemble pairs** | `run_ensemble_inference.py` | Combines CNN embeddings from two probes via a trained classifier (MLP/SVM). More accurate but needs reducer + ensemble weights. |
-
-### Ensemble probe pairs
-
-The batch runner (`run_inference.sh`) runs these 5 ensemble pairs by default:
-
-| Pair | Probe 1 | Probe 2 | Algorithm |
-|------|---------|---------|-----------|
-| 34_42 | 34 | 42 | MLP |
-| 42_209 | 42 | 209 | SVM (RBF) |
-| 42_270 | 42 | 270 | SVM (RBF) |
-| 55_254 | 55 | 254 | SVM (RBF) |
-| 57_229 | 57 | 229 | SVM (RBF) |
-
-To get the best prediction, average the probabilities from all models (CNN + ensemble pairs) — this is the **hybrid** approach, which achieved the best overall accuracy (64.6%) on the Lygodium validation set.
+For the most accurate classification, average the predicted probabilities from all CNN probes and all ensemble pairs, then threshold at 0.5.
 
 ---
 
-## How It Works
+## Models
+
+### CNN top-10
+
+The 10 highest-ranked individual probe CNNs (by test AUC on the original training/test split). Each CNN takes a MAFFT-aligned read matrix for a single probe locus as input and outputs a polyploidy probability.
+
+| Rank | Probe Index | Test AUC |
+|------|-------------|----------|
+| 1 | 128 | 0.879 |
+| 2 | 57 | 0.853 |
+| 3 | 33 | 0.825 |
+| 4 | 229 | 0.820 |
+| 5 | 9 | 0.806 |
+| 6 | 347 | 0.805 |
+| 7 | 164 | 0.795 |
+| 8 | 182 | 0.785 |
+| 9 | 382 | 0.777 |
+| 10 | 147 | 0.776 |
+
+### Ensemble pairs
+
+Each ensemble model takes 500-dimensional embeddings from two probe-specific CNN+reducer pipelines and classifies them jointly.
+
+| Probe pair | Algorithm | Training test accuracy |
+|------------|-----------|----------------------|
+| 34, 42 | MLP | 0.971 |
+| 42, 209 | SVM (RBF) | 0.971 |
+| 42, 270 | SVM (RBF) | 0.971 |
+| 55, 254 | SVM (RBF) | 0.971 |
+| 57, 229 | SVM (RBF) | 0.971 |
+
+See `models/README.md` for a complete inventory of all weight files.
+
+---
+
+## Pipeline Architecture
 
 ```
 BAM file
     │
     ▼
-[BAM → FASTA] ──→ extract reads per probe
+Extract reads per probe locus (samtools + pysam)
     │
     ▼
-[MAFFT alignment] ──→ align reads against reference
+Multiple sequence alignment against reference (MAFFT)
     │
     ▼
-[Tokenization] ──→ encode nucleotides as integers (A=1, C=2, G=3, T=4, gap=0)
+Tokenize alignment (A=1, C=2, G=3, T=4, gap=0)
     │
     ▼
-[CNN model] ──→ predict polyploidy probability per probe
+CNN model → polyploidy probability per probe
     │
     ├──→ CNN-only: average probabilities across top-10 probes
     │
-    └──→ Ensemble: CNN features → MLP reducer → 500-d embedding
-                                                    │
-                                                    ▼
-                                        [Classifier (MLP/SVM)] ──→ final prediction
+    └──→ Ensemble: extract CNN features → MLP reducer → 500-d embedding
+                                                            │
+                                                            ▼
+                                                Classifier (MLP/SVM) → final prediction
 ```
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `mafft not found` | Activate your conda env: `conda activate ploidy-env` |
-| `No CNN found for probe X` | Make sure CNN weights are in `models/cnn_weights/` |
-| `pysam` import error | Install it: `conda install -c bioconda pysam` |
-| `CUDA out of memory` | Add `--device cpu` to use CPU instead |
-| SLURM job fails | Check the `.err` file; often a path or memory issue |
+| Issue | Solution |
+|-------|----------|
+| `mafft: command not found` | Activate the conda environment or install MAFFT |
+| `No CNN found for probe X` | Verify model weights are present in `models/cnn_weights/` |
+| `pysam` import error | `conda install -c bioconda pysam` or `pip install pysam` |
+| `CUDA out of memory` | Pass `--device cpu` to run on CPU |
+| SLURM job fails | Check the `.err` log file for path or memory issues |
 
 ---
 
-## Reference
+## Citation
 
-This pipeline accompanies the paper:
+If you use this software, please cite:
 
-> **Machine learning prediction of plant polyploidy from target capture data**
-> Fahimeh Rahimi, Jessie A. Pelosi, J. Gordon Burleigh, Juannan Zhou
+> Fahimeh Rahimi, Jessie A. Pelosi, J. Gordon Burleigh, Juannan Zhou. *Machine learning prediction of plant polyploidy from target capture data.* (2025)
 
-For questions, contact Fahimeh Rahimi (fahimeh.rahimi@ufl.edu).
+---
+
+## License
+
+[MIT License](LICENSE)
+
+---
+
+## Contact
+
+For questions or issues, please open a [GitHub issue](https://github.com/Fahimehgit/ploidy-classifier/issues) or contact Fahimeh Rahimi (fahimeh.rahimi@ufl.edu).
