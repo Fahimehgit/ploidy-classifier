@@ -117,12 +117,13 @@ python src/run_cnn_top10_inference.py \
   --reference-dir /path/to/reference_fastas
 
 # Ensemble inference (run for each probe pair)
+# Pair (34,42) corresponds to probes L139+L146
 python src/run_ensemble_inference.py \
   --bam /path/to/sample.bam \
   --work-dir output/sample_work \
   --reference-dir /path/to/reference_fastas \
   --probe1 34 --probe2 42 \
-  --output-csv output/ensemble_34_42_predictions.csv
+  --output-csv output/ensemble_L139_L146_predictions.csv
 ```
 
 ### SLURM cluster submission
@@ -142,8 +143,7 @@ sbatch slurm/run_inference.slurm
 | Column | Description |
 |--------|-------------|
 | `species_id` | Sample identifier (derived from BAM filename) |
-| `probe` | Model index of the probe used |
-| `probe_id` | Probe locus ID (e.g., L238) |
+| `probe` | Probe locus name (e.g., L238) |
 | `prob_polyploid` | Predicted probability of polyploidy (0–1) |
 | `pred_label` | Binary prediction at threshold 0.5 |
 
@@ -169,18 +169,18 @@ For the most accurate classification, average the predicted probabilities from a
 
 The 10 highest-ranked individual probe CNNs (by test AUC on the original training/test split). Each CNN takes a MAFFT-aligned read matrix for a single probe locus as input and outputs a polyploidy probability.
 
-| Rank | Probe Index | Test AUC |
-|------|-------------|----------|
-| 1 | 128 | 0.879 |
-| 2 | 57 | 0.853 |
-| 3 | 33 | 0.825 |
-| 4 | 229 | 0.820 |
-| 5 | 9 | 0.806 |
-| 6 | 347 | 0.805 |
-| 7 | 164 | 0.795 |
-| 8 | 182 | 0.785 |
-| 9 | 382 | 0.777 |
-| 10 | 147 | 0.776 |
+| Rank | Probe | Test AUC |
+|------|-------|----------|
+| 1 | L238 | 0.879 |
+| 2 | L16 | 0.853 |
+| 3 | L138 | 0.825 |
+| 4 | L342 | 0.820 |
+| 5 | L11 | 0.806 |
+| 6 | L63 | 0.805 |
+| 7 | L278 | 0.795 |
+| 8 | L295 | 0.785 |
+| 9 | L98 | 0.777 |
+| 10 | L257 | 0.776 |
 
 ### Ensemble pairs
 
@@ -188,11 +188,11 @@ Each ensemble model takes 500-dimensional embeddings from two probe-specific CNN
 
 | Probe pair | Algorithm | Test AUC | Test accuracy |
 |------------|-----------|----------|---------------|
-| 34, 42 | MLP | 0.989 | 33/34 (97.1%) |
-| 42, 270 | SVM (RBF) | 0.982 | 33/34 (97.1%) |
-| 57, 229 | SVM (RBF) | 0.982 | 33/34 (97.1%) |
-| 55, 254 | SVM (RBF) | 0.960 | 33/34 (97.1%) |
-| 42, 209 | SVM (RBF) | 0.956 | 33/34 (97.1%) |
+| L139 + L146 | MLP | 0.989 | 33/34 (97.1%) |
+| L146 + L389 | SVM (RBF) | 0.982 | 33/34 (97.1%) |
+| L16 + L342 | SVM (RBF) | 0.982 | 33/34 (97.1%) |
+| L158 + L373 | SVM (RBF) | 0.960 | 33/34 (97.1%) |
+| L146 + L320 | SVM (RBF) | 0.956 | 33/34 (97.1%) |
 
 See `models/README.md` for a complete inventory of all weight files.
 

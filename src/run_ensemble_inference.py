@@ -135,14 +135,20 @@ def cnn_features(cnn: nn.Module, x: torch.Tensor) -> torch.Tensor:
     return x
 
 
-def resolve_cnn_path(cnn_dir: str, probe_idx: int) -> str:
+def resolve_cnn_path(cnn_dir: str, probe_idx: int, probe_id: Optional[int] = None) -> str:
+    if probe_id is not None:
+        c0 = os.path.join(cnn_dir, f"cnn_L{probe_id}.pt")
+        if os.path.exists(c0):
+            return c0
     c1 = os.path.join(cnn_dir, f"best_model_probe_3_{probe_idx}.pt")
     c2 = os.path.join(cnn_dir, f"best_model_probe_{probe_idx}.pt")
     if os.path.exists(c1):
         return c1
     if os.path.exists(c2):
         return c2
-    raise FileNotFoundError(f"No CNN found for probe {probe_idx} (checked {c1} and {c2})")
+    checked = [c0] if probe_id else []
+    checked.extend([c1, c2])
+    raise FileNotFoundError(f"No CNN found for probe {probe_idx} (checked {checked})")
 
 
 # -------------------------
@@ -252,10 +258,12 @@ def embed_probe(
     ds = InferenceDataset(seqs, ids)
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=0)
 
-    cnn_path = resolve_cnn_path(cnn_dir, model_idx)
+    cnn_path = resolve_cnn_path(cnn_dir, model_idx, probe_id=json_probe_id)
     cnn = torch.load(cnn_path, map_location=device, weights_only=False).to(device).eval()
 
-    reducer_path = os.path.join(reducer_dir, f"reducer_probe_{model_idx}.pt")
+    reducer_path = os.path.join(reducer_dir, f"reducer_L{json_probe_id}.pt")
+    if not os.path.exists(reducer_path):
+        reducer_path = os.path.join(reducer_dir, f"reducer_probe_{model_idx}.pt")
     reducer_ckpt = torch.load(reducer_path, map_location="cpu")
     reducer = ReducerMLP(
         in_dim=int(reducer_ckpt["in_dim"]),
@@ -693,7 +701,7 @@ def main() -> None:
     ap.add_argument("--skip-data-prep", action="store_true", help="Skip BAM->JSON, use --json-dir instead")
     ap.add_argument("--json-dir", default=None, help="JSON dir if skipping data prep")
     ap.add_argument("--cnn-dir", default=str(repo_root / "models" / "cnn_weights"),
-                     help="Directory with best_model_probe_3_*.pt CNN checkpoints")
+                     help="Directory with CNN checkpoints (cnn_L*.pt or best_model_probe_3_*.pt)")
     ap.add_argument("--reducers-dir", default=str(repo_root / "models" / "reducer_weights"),
                      help="Directory with reducer_probe_*.pt reducer checkpoints")
     ap.add_argument(
@@ -735,17 +743,6 @@ def main() -> None:
     ap.add_argument("--skip-if-exists", action="store_true", help="Skip if output CSV already exists")
     args = ap.parse_args()
 
-    if args.ensemble_model is None:
-        ens_dir = repo_root / "models" / "ensemble_models"
-        p1, p2 = min(args.probe1, args.probe2), max(args.probe1, args.probe2)
-        candidates = list(ens_dir.glob(f"ensemble_{p1}_{p2}_*.joblib")) + \
-                     list(ens_dir.glob(f"ensemble_{args.probe1}_{args.probe2}_*.joblib"))
-        if candidates:
-            args.ensemble_model = str(candidates[0])
-            print(f"Auto-detected ensemble model: {args.ensemble_model}")
-        else:
-            args.ensemble_model = str(ens_dir / f"ensemble_{args.probe1}_{args.probe2}_gradient_boosting.joblib")
-
     probe_map_csv = Path(args.probe_id_map_csv) if args.probe_id_map_csv else None
     if probe_map_csv is not None and probe_map_csv.exists():
         probe_id_map = load_probe_id_mapping_from_csv(probe_map_csv)
@@ -763,6 +760,21 @@ def main() -> None:
             f"probe1={args.probe1}->{probe1_id}, probe2={args.probe2}->{probe2_id}. "
             f"Check --json-reference-dir."
         )
+
+    if args.ensemble_model is None:
+        ens_dir = repo_root / "models" / "ensemble_models"
+        # Try probe-name-based filenames first (e.g., ensemble_L139_L146_mlp.joblib)
+        n1, n2 = f"L{min(probe1_id, probe2_id)}", f"L{max(probe1_id, probe2_id)}"
+        candidates = list(ens_dir.glob(f"ensemble_{n1}_{n2}_*.joblib"))
+        # Also try legacy index-based filenames
+        p1, p2 = min(args.probe1, args.probe2), max(args.probe1, args.probe2)
+        candidates += list(ens_dir.glob(f"ensemble_{p1}_{p2}_*.joblib"))
+        candidates += list(ens_dir.glob(f"ensemble_{args.probe1}_{args.probe2}_*.joblib"))
+        if candidates:
+            args.ensemble_model = str(candidates[0])
+            print(f"Auto-detected ensemble model: {args.ensemble_model}")
+        else:
+            args.ensemble_model = str(ens_dir / f"ensemble_{n1}_{n2}_gradient_boosting.joblib")
 
     device = torch.device(args.device) if args.device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
     work_dir = Path(args.work_dir)

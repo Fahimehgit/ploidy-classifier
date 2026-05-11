@@ -80,6 +80,8 @@ for bam in "${BAM_LIST[@]}"; do
     --skip-if-exists
 
   # --- Step 2: Ensemble pair inference (run each pair) ---
+  # Pairs specified as model_index values; probe names are resolved internally
+  # Pair (34,42)=L139+L146, (42,209)=L146+L320, (42,270)=L146+L389, (55,254)=L158+L373, (57,229)=L16+L342
   for PAIR in "34 42" "42 209" "42 270" "55 254" "57 229"; do
     P1=$(echo $PAIR | cut -d' ' -f1)
     P2=$(echo $PAIR | cut -d' ' -f2)

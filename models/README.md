@@ -8,40 +8,40 @@ All model weights are included in this repository (~164 MB total).
 
 16 trained CNN checkpoints: the top-10 ranked probes plus additional probes needed by the ensemble pairs.
 
-| File | Probe Index | Used by |
-|------|-------------|---------|
-| `best_model_probe_3_9.pt` | 9 | CNN top-10 |
-| `best_model_probe_3_33.pt` | 33 | CNN top-10 |
-| `best_model_probe_3_34.pt` | 34 | Ensemble (34,42) |
-| `best_model_probe_3_42.pt` | 42 | Ensemble (34,42), (42,209), (42,270) |
-| `best_model_probe_3_55.pt` | 55 | Ensemble (55,254) |
-| `best_model_probe_3_57.pt` | 57 | CNN top-10, Ensemble (57,229) |
-| `best_model_probe_3_128.pt` | 128 | CNN top-10 |
-| `best_model_probe_3_147.pt` | 147 | CNN top-10 |
-| `best_model_probe_3_164.pt` | 164 | CNN top-10 |
-| `best_model_probe_3_182.pt` | 182 | CNN top-10 |
-| `best_model_probe_3_209.pt` | 209 | Ensemble (42,209) |
-| `best_model_probe_3_229.pt` | 229 | CNN top-10, Ensemble (57,229) |
-| `best_model_probe_3_254.pt` | 254 | Ensemble (55,254) |
-| `best_model_probe_3_270.pt` | 270 | Ensemble (42,270) |
-| `best_model_probe_3_347.pt` | 347 | CNN top-10 |
-| `best_model_probe_3_382.pt` | 382 | CNN top-10 |
+| File | Probe | Used by |
+|------|-------|---------|
+| `cnn_L11.pt` | L11 | CNN top-10 |
+| `cnn_L138.pt` | L138 | CNN top-10 |
+| `cnn_L139.pt` | L139 | Ensemble (L139+L146) |
+| `cnn_L146.pt` | L146 | Ensemble (L139+L146), (L146+L320), (L146+L389) |
+| `cnn_L158.pt` | L158 | Ensemble (L158+L373) |
+| `cnn_L16.pt` | L16 | CNN top-10, Ensemble (L16+L342) |
+| `cnn_L238.pt` | L238 | CNN top-10 |
+| `cnn_L257.pt` | L257 | CNN top-10 |
+| `cnn_L278.pt` | L278 | CNN top-10 |
+| `cnn_L295.pt` | L295 | CNN top-10 |
+| `cnn_L320.pt` | L320 | Ensemble (L146+L320) |
+| `cnn_L342.pt` | L342 | CNN top-10, Ensemble (L16+L342) |
+| `cnn_L373.pt` | L373 | Ensemble (L158+L373) |
+| `cnn_L389.pt` | L389 | Ensemble (L146+L389) |
+| `cnn_L63.pt` | L63 | CNN top-10 |
+| `cnn_L98.pt` | L98 | CNN top-10 |
 
 ### 2. Reducer weights (`reducer_weights/`)
 
 8 MLP reducer checkpoints that map CNN features to 500-dimensional embeddings.
 Only needed for **ensemble** inference.
 
-| File | Probe Index |
-|------|-------------|
-| `reducer_probe_34.pt` | 34 |
-| `reducer_probe_42.pt` | 42 |
-| `reducer_probe_55.pt` | 55 |
-| `reducer_probe_57.pt` | 57 |
-| `reducer_probe_209.pt` | 209 |
-| `reducer_probe_229.pt` | 229 |
-| `reducer_probe_254.pt` | 254 |
-| `reducer_probe_270.pt` | 270 |
+| File | Probe |
+|------|-------|
+| `reducer_L139.pt` | L139 |
+| `reducer_L146.pt` | L146 |
+| `reducer_L158.pt` | L158 |
+| `reducer_L16.pt` | L16 |
+| `reducer_L320.pt` | L320 |
+| `reducer_L342.pt` | L342 |
+| `reducer_L373.pt` | L373 |
+| `reducer_L389.pt` | L389 |
 
 ### 3. Ensemble models (`ensemble_models/`)
 
@@ -49,9 +49,8 @@ Only needed for **ensemble** inference.
 
 | File | Pair | Algorithm |
 |------|------|-----------|
-| `ensemble_34_42_mlp.joblib` | 34 + 42 | MLP |
-| `ensemble_42_209_svm_rbf.joblib` | 42 + 209 | SVM (RBF) |
-| `ensemble_42_270_svm_rbf.joblib` | 42 + 270 | SVM (RBF) |
-| `ensemble_55_254_svm_rbf.joblib` | 55 + 254 | SVM (RBF) |
-| `ensemble_57_229_svm_rbf.joblib` | 57 + 229 | SVM (RBF) |
-
+| `ensemble_L139_L146_mlp.joblib` | L139 + L146 | MLP |
+| `ensemble_L146_L320_svm_rbf.joblib` | L146 + L320 | SVM (RBF) |
+| `ensemble_L146_L389_svm_rbf.joblib` | L146 + L389 | SVM (RBF) |
+| `ensemble_L158_L373_svm_rbf.joblib` | L158 + L373 | SVM (RBF) |
+| `ensemble_L16_L342_svm_rbf.joblib` | L16 + L342 | SVM (RBF) |

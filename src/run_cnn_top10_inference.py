@@ -89,14 +89,20 @@ class DynamicLeNet(nn.Module):
         return self.sigmoid(x)
 
 
-def resolve_cnn_path(cnn_dir: str, probe_idx: int) -> str:
+def resolve_cnn_path(cnn_dir: str, probe_idx: int, probe_id: Optional[int] = None) -> str:
+    if probe_id is not None:
+        c0 = os.path.join(cnn_dir, f"cnn_L{probe_id}.pt")
+        if os.path.exists(c0):
+            return c0
     c1 = os.path.join(cnn_dir, f"best_model_probe_3_{probe_idx}.pt")
     c2 = os.path.join(cnn_dir, f"best_model_probe_{probe_idx}.pt")
     if os.path.exists(c1):
         return c1
     if os.path.exists(c2):
         return c2
-    raise FileNotFoundError(f"No CNN found for probe {probe_idx} (checked {c1} and {c2})")
+    checked = [c0] if probe_id else []
+    checked.extend([c1, c2])
+    raise FileNotFoundError(f"No CNN found for probe {probe_idx} (checked {checked})")
 
 
 # -------------------------
@@ -449,7 +455,7 @@ def get_top_probes(npz_path: Path, top_n: int) -> List[int]:
     return [int(p) for p in probes[:top_n]]
 
 
-def load_probe_id_mapping(json_reference_dir: Path, probe_id_map_csv: Optional[Path] = None) -> List[int]:
+def load_probe_id_mapping(json_reference_dir: Optional[Path], probe_id_map_csv: Optional[Path] = None) -> List[int]:
     # Prefer an explicit frozen mapping manifest to avoid any ordering ambiguity.
     if probe_id_map_csv is not None and probe_id_map_csv.exists():
         df = pd.read_csv(probe_id_map_csv)
@@ -468,6 +474,9 @@ def load_probe_id_mapping(json_reference_dir: Path, probe_id_map_csv: Optional[P
             raise ValueError(f"Probe-id mapping CSV {probe_id_map_csv} contained no valid rows.")
         max_idx = max(out.keys())
         return [out.get(i, -1) for i in range(max_idx + 1)]
+
+    if json_reference_dir is None:
+        raise ValueError("No probe-id mapping available. Provide --probe-id-map-csv or --json-reference-dir.")
 
     # Backward-compatible fallback: legacy lexicographic ordering used by historical artifacts.
     files = sorted([f for f in os.listdir(json_reference_dir) if f.endswith(".json")])
@@ -492,7 +501,7 @@ def main() -> None:
     ap.add_argument("--bam", required=True, help="Input BAM file")
     ap.add_argument("--work-dir", required=True, help="Working directory for intermediate and output files")
     ap.add_argument("--cnn-dir", default=str(repo_root / "models" / "cnn_weights"),
-                     help="Directory with best_model_probe_3_*.pt CNN checkpoints")
+                     help="Directory with CNN checkpoints (cnn_L*.pt or best_model_probe_3_*.pt)")
     ap.add_argument("--top-n", type=int, default=10)
     ap.add_argument("--ranked-npz", default=str(repo_root / "data" / "final_ranked_results.npz"))
     ap.add_argument("--probe-prefix", default="L")
@@ -577,7 +586,8 @@ def main() -> None:
         return
 
     probe_map_csv = Path(args.probe_id_map_csv) if args.probe_id_map_csv else None
-    mapping = load_probe_id_mapping(Path(args.json_reference_dir), probe_map_csv)
+    json_ref_dir = Path(args.json_reference_dir) if args.json_reference_dir else None
+    mapping = load_probe_id_mapping(json_ref_dir, probe_map_csv)
     probe_id_by_index = {idx: probe_id for idx, probe_id in enumerate(mapping) if probe_id >= 0}
     # map model indices -> probe ids for reference/alignment
     probe_ids = []
@@ -676,7 +686,7 @@ def main() -> None:
             max_length=154,
             max_auxiliary=350,
         )
-        cnn_path = resolve_cnn_path(args.cnn_dir, p)
+        cnn_path = resolve_cnn_path(args.cnn_dir, p, probe_id=probe_id)
         prob = run_cnn_predict(json_path, cnn_path, device)
         pred = int(prob >= 0.5)
         predictions.append(
